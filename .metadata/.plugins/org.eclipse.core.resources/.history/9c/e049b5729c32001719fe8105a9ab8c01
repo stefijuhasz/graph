@@ -1,0 +1,212 @@
+package handling;
+
+
+import java.util.ArrayList;
+
+import org.apache.commons.math3.linear.Array2DRowRealMatrix;
+
+import graph.DirectedGraph;
+import graph.Edge;
+import graph.Partition;
+import graph.Vertex;
+
+public class GraphHandler {
+	
+	public  Array2DRowRealMatrix makeAdjMx(DirectedGraph g){
+		
+		
+		Array2DRowRealMatrix adj = new Array2DRowRealMatrix(g.getvertexNum(),g.getvertexNum());
+		ArrayList<Edge> edges = g.getEdgeList();
+		
+		for(int i=0;i<adj.getRowDimension();i++){
+			for(int j=0;j<adj.getColumnDimension();j++){
+				if(i!=j){
+					adj.setEntry(i, j, Double.POSITIVE_INFINITY);
+				}
+				else adj.setEntry(i, j, 0);
+			}
+		}
+		
+		for(int i=0;i<edges.size();i++){
+			int row = edges.get(i).getSource().getId();
+			int column = edges.get(i).getTarget().getId();
+			Double weight = edges.get(i).getWeight();
+			adj.setEntry(row, column, weight);	
+		}
+		
+		return adj;
+		
+	}
+	
+	public DirectedGraph makeDiGraph(Array2DRowRealMatrix adj){
+		DirectedGraph g = new DirectedGraph(adj.getColumnDimension());
+		
+		for(int i = 0;i<adj.getRowDimension();i++){
+			for(int j = 0; j<adj.getColumnDimension();j++){
+				if(i!=j){
+					Vertex s = new Vertex("x"+i);
+					Vertex t = new Vertex("x"+j);
+					Edge e = new Edge(s,t,(Double)adj.getEntry(i, j));
+					g.addEdge(e);
+					
+				}
+			}
+		}
+		return g;
+	}
+	
+	public Array2DRowRealMatrix shortest(Array2DRowRealMatrix adj){
+		
+		for(int k = 0;k<adj.getColumnDimension();k++){
+			for(int i=0;i<adj.getRowDimension();i++){
+				for(int j = 0;j<adj.getColumnDimension();j++){
+					if(i!=j){
+						adj.setEntry(i, j, min(adj.getEntry(i, j),(adj.getEntry(i, k)+adj.getEntry(k, j))));
+					}
+				}
+			}
+		}
+		
+		return adj;
+	}
+	
+	public double min(double d1,double d2){
+		if(d1<d2){
+			return d1;
+		}
+		else return d2;
+	}
+
+	public DirectedGraph reductionZero(Array2DRowRealMatrix adj){
+		DirectedGraph g = makeDiGraph(adj);
+		
+		for(int i=0;i<adj.getRowDimension();i++){
+			for(int j=0;j<adj.getColumnDimension();j++){
+				for(int k=0;k<adj.getColumnDimension();k++){
+					if(i!=k && k!=j && i!=j){
+					if((adj.getEntry(i, k)+adj.getEntry(k, j))<=adj.getEntry(i, j)){
+						for(int l = 0; l<g.getEdgeList().size();l++){
+							if(g.getEdgeList().get(l).getSource().getId()==i && g.getEdgeList().get(l).getTarget().getId()==j){
+								g.getEdgeList().get(l).setRed(true);
+							}
+						}
+					}
+					}
+				}
+			}
+		}
+
+		return g;
+		
+	}
+
+	public DirectedGraph delred(DirectedGraph g){
+		ArrayList<Edge> del = new ArrayList<Edge>();
+		
+		for(int i = 0;i<g.getEdgeList().size();i++){
+			if(g.getEdgeList().get(i).isRed()==true){
+				Edge e= g.getEdgeList().get(i);
+				del.add(e);
+			}
+		}
+		
+		for(int i =0;i<del.size();i++){
+			g.removeEdge(del.get(i));
+		}
+		
+		return g;
+	}
+
+	
+	public ArrayList<Partition> makePartitions(DirectedGraph g){
+		ArrayList<Partition> partitions = new ArrayList<Partition>();
+		Array2DRowRealMatrix adj = makeAdjMx(g);
+		
+		for(int i = 0;i<adj.getRowDimension();i++){
+			boolean found = false;
+			if(!partitions.isEmpty()){
+				for(int k = 0;k<partitions.size();k++){
+					for (int l=0; l<partitions.get(k).getNodes().size();l++){
+						if(partitions.get(k).getNodes().get(l).getName().equals("x"+i)){
+							found = true;
+						}
+					}
+				}
+			}
+			if(!found){
+				Partition p = new Partition();
+				for(int j=i;j<adj.getColumnDimension();j++){
+					Vertex v2 = new Vertex("x"+j);
+					if(adj.getEntry(i, j)+adj.getEntry(j, i)==0){
+						p.addNode(v2);
+						
+					}
+				}
+				partitions.add(p);
+			}
+		}
+		
+		
+		return partitions;
+		
+	}
+
+	public DirectedGraph reductionNegative(DirectedGraph g){
+		ArrayList<Partition> parts = makePartitions(g);
+		DirectedGraph g2 = new DirectedGraph(g.getvertexNum());
+		ArrayList<Vertex> g2ver = new ArrayList<Vertex>();
+		ArrayList<Edge> edges = g.getEdgeList();
+		for(int i=0;i<parts.size();i++){
+			parts.get(i).setRepver(parts.get(i).getNodes().get(0));
+			g2ver.add(parts.get(i).getNodes().get(0));
+		}
+		
+		
+		for (int i = 0;i<g2ver.size();i++){
+			for(int j = 0; j<edges.size();j++){
+				if(edges.get(j).getSource().getName().equals(g2ver.get(i).getName())){
+					boolean tf = false;
+					for(int k = 0; k<g2ver.size();k++){
+						if(edges.get(j).getTarget().getName().equals(g2ver.get(k).getName())){
+							tf = true;
+						}
+					}
+					
+					if(tf){
+						g2.addEdge(edges.get(j));
+					}
+						
+				}
+			}
+		}
+		
+		g2 = reductionZero(makeAdjMx(g2));
+		g2 = delred(g2);
+		
+		for (int i = 0;i<parts.size();i++){
+			if(parts.get(i).getNodes().size()>1){
+				for(int j = 0;j<parts.get(i).getNodes().size();j++){
+					if((j+1)<parts.get(i).getNodes().size()){
+						for(int k = 0;k<edges.size();k++){
+							if(parts.get(i).getNodes().get(j).getName().equals(edges.get(k).getSource().getName()) && parts.get(i).getNodes().get(j+1).getName().equals(edges.get(k).getTarget().getName())){
+								g2.addEdge(edges.get(k));
+							}
+						}
+					}
+					else {
+						for(int k = 0;k<edges.size();k++){
+							if(parts.get(i).getNodes().get(j).getName().equals(edges.get(k).getSource().getName()) && parts.get(i).getRepver().getName().equals(edges.get(k).getTarget().getName())){
+								g2.addEdge(edges.get(k));
+							}
+						}
+					}
+				}
+			}
+		}
+		
+		return g2;
+	}
+
+
+	
+}

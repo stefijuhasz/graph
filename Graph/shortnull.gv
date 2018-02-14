@@ -1,0 +1,14 @@
+digraph reduced {
+x0 -> x1 [ label = "9" ];
+x0 -> x2 [ label = "8" ];
+x0 -> x3 [ label = "7" ];
+x1 -> x0 [ label = "5" ];
+x1 -> x2 [ label = "13" ];
+x1 -> x3 [ label = "12" ];
+x2 -> x0 [ label = "6" ];
+x2 -> x1 [ label = "15" ];
+x2 -> x3 [ label = "13" ];
+x3 -> x0 [ label = "7" ];
+x3 -> x1 [ label = "2" ];
+x3 -> x2 [ label = "1" ];
+}

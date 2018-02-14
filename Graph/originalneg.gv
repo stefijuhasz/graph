@@ -1,0 +1,8 @@
+digraph reduced {
+x0 -> x3 [ label = "5" ];
+x1 -> x0 [ label = "3" ];
+x1 -> x2 [ label = "10" ];
+x1 -> x3 [ label = "2" ];
+x2 -> x1 [ label = "-4" ];
+x3 -> x2 [ label = "2" ];
+}
